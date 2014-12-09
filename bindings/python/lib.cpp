@@ -49,6 +49,8 @@ BOOST_PYTHON_MODULE(libcloudphxx)
     bp::def("p_vs", &common::p_vs<real_t>);
     bp::def("T", &common::T<real_t>);
     bp::def("p", &common::p<real_t>);
+    bp::def("rw3_cr", &common::rw3_cr<real_t>);
+    bp::def("S_cr", &common::S_cr<real_t>);
   }
 
   // blk_1m stuff
@@ -147,9 +149,11 @@ BOOST_PYTHON_MODULE(libcloudphxx)
       .def_readwrite("kernel", &lgr::opts_init_t<real_t>::kernel)
       .def_readwrite("sd_conc_mean", &lgr::opts_init_t<real_t>::sd_conc_mean)
       .def_readwrite("chem_rho", &lgr::opts_init_t<real_t>::chem_rho)
+      .def_readwrite("RH_max", &lgr::opts_init_t<real_t>::RH_max)
     ;
     bp::class_<lgr::particles_proto_t<real_t>/*, boost::noncopyable*/>("particles_proto_t")
-      .def("init",         &lgrngn::init<real_t>)
+      .def("init",         &lgrngn::init_3arg<real_t>)
+      .def("init",         &lgrngn::init_5arg<real_t>)
       .def("step_sync",    &lgrngn::step_sync<real_t>)
       .def("step_async",   &lgr::particles_proto_t<real_t>::step_async)
       .def("diag_sd_conc", &lgr::particles_proto_t<real_t>::diag_sd_conc)

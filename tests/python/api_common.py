@@ -1,5 +1,5 @@
 import sys
-sys.path.append("../../bindings/python/")
+sys.path.insert(0, "../../bindings/python/")
 
 #<listing-1>
 from libcloudphxx import common
@@ -17,3 +17,7 @@ rv = .01
 
 print common.th_dry2std(th, rv)	
 assert common.th_std2dry(common.th_dry2std(th, rv), rv) == th
+
+rd3 = (.2e-6)**3
+assert common.rw3_cr(rd3, .5, 300) > rd3
+assert common.S_cr(rd3, .5, 300) > 1

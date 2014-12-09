@@ -33,11 +33,11 @@ foreach(test api_blk_1m api_blk_2m api_lgrngn api_common)
 endforeach()
 
 ## pytest tests run with "python -m pytest"
-#foreach(test pytest_hello)
-#  #TODO: indicate that tests depend on the lib
-#  add_test(
-#    NAME ${test}
-#    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bindings/python" 
-#    COMMAND ${PYTHON_EXECUTABLE} "-m" "pytest" "-s" "${CMAKE_SOURCE_DIR}/tests/python/${test}.py"
-#  )
-#endforeach()
+foreach(test test_lgrngn_adve)
+  #TODO: indicate that tests depend on the lib
+  add_test(
+    NAME ${test}
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bindings/python" 
+    COMMAND ${PYTHON_EXECUTABLE} "-m" "pytest" "-s" "${CMAKE_SOURCE_DIR}/tests/python/${test}.py"
+  )
+endforeach()
