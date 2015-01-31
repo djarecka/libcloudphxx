@@ -8,6 +8,8 @@
 // - http://www.boost.org/doc/libs/1_55_0/libs/python/doc/tutorial/doc/html/python/exposing.html
 // - http://isolation-nation.blogspot.com/2008/09/packages-in-python-extension-modules.html
 
+#include <libcloudph++/git_revision.h>
+
 #include "util.hpp"
 #include "blk_1m.hpp"
 #include "blk_2m.hpp"
@@ -27,6 +29,9 @@ BOOST_PYTHON_MODULE(libcloudphxx)
   // specify that this module is actually a package
   bp::object package = bp::scope();
   package.attr("__path__") = "libcloudphxx";
+
+  // exposing git revision id
+  package.attr("git_revision") = GIT_REVISION;
 
   // common stuff
   {
@@ -127,9 +132,6 @@ BOOST_PYTHON_MODULE(libcloudphxx)
       .def_readwrite("coal", &lgr::opts_t<real_t>::coal)
       .def_readwrite("chem", &lgr::opts_t<real_t>::chem)
       .def_readwrite("RH_max", &lgr::opts_t<real_t>::RH_max)
-      .def_readwrite("sstp_cond", &lgr::opts_t<real_t>::sstp_cond)
-      .def_readwrite("sstp_coal", &lgr::opts_t<real_t>::sstp_coal)
-      .def_readwrite("sstp_chem", &lgr::opts_t<real_t>::sstp_chem)
       .add_property("chem_gas", &lgrngn::get_cg<real_t>, &lgrngn::set_cg<real_t>)
     ;
     bp::class_<lgr::opts_init_t<real_t>>("opts_init_t")
@@ -147,17 +149,23 @@ BOOST_PYTHON_MODULE(libcloudphxx)
       .def_readwrite("z0", &lgr::opts_init_t<real_t>::z0)
       .def_readwrite("z1", &lgr::opts_init_t<real_t>::z1)
       .def_readwrite("dt", &lgr::opts_init_t<real_t>::dt)
+      .def_readwrite("sstp_cond", &lgr::opts_init_t<real_t>::sstp_cond)
+      .def_readwrite("sstp_coal", &lgr::opts_init_t<real_t>::sstp_coal)
+      .def_readwrite("sstp_chem", &lgr::opts_init_t<real_t>::sstp_chem)
       .def_readwrite("kernel", &lgr::opts_init_t<real_t>::kernel)
       .def_readwrite("sd_conc_mean", &lgr::opts_init_t<real_t>::sd_conc_mean)
       .def_readwrite("chem_rho", &lgr::opts_init_t<real_t>::chem_rho)
       .def_readwrite("RH_max", &lgr::opts_init_t<real_t>::RH_max)
     ;
     bp::class_<lgr::particles_proto_t<real_t>/*, boost::noncopyable*/>("particles_proto_t")
+      .add_property("opts_init", &lgrngn::get_oi<real_t>)
       .def("init",         &lgrngn::init_3arg<real_t>)
       .def("init",         &lgrngn::init_5arg<real_t>)
       .def("step_sync",    &lgrngn::step_sync<real_t>)
       .def("step_async",   &lgr::particles_proto_t<real_t>::step_async)
       .def("diag_sd_conc", &lgr::particles_proto_t<real_t>::diag_sd_conc)
+      .def("diag_all",     &lgr::particles_proto_t<real_t>::diag_all)
+      .def("diag_rw_ge_rc",&lgr::particles_proto_t<real_t>::diag_rw_ge_rc)
       .def("diag_dry_rng", &lgr::particles_proto_t<real_t>::diag_dry_rng)
       .def("diag_wet_rng", &lgr::particles_proto_t<real_t>::diag_wet_rng)
       .def("diag_dry_mom", &lgr::particles_proto_t<real_t>::diag_dry_mom)
