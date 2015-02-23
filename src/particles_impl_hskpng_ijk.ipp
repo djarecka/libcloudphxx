@@ -45,10 +45,11 @@ namespace libcloudphxx
 	  );
         }
       } helper;
-      
+      std::cerr << "AQQ" << std::endl;	      
       if (opts_init.nx != 0) helper(x, i, opts_init.dx);
       if (opts_init.ny != 0) helper(y, j, opts_init.dy);
       if (opts_init.nz != 0) helper(z, k, opts_init.dz);
+      std::cerr << "AQQ po ifie" << std::endl;
 
       // raveling i, j & k into ijk
       switch (n_dims)
@@ -89,6 +90,7 @@ namespace libcloudphxx
       
       // flagging that particles are no longer sorted 
       sorted = false;
+      std::cerr << "AQQ po sorted" << std::endl;
     }   
   };  
 };
