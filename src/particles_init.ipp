@@ -21,6 +21,7 @@ namespace libcloudphxx
       const arrinfo_t<real_t> rhod_courant_z  // might be NULL
     )
     {
+      std::cerr << "AQQ przed sanity" << std::endl;
       // sanity checks
       assert(!th.is_null());
       assert(!rv.is_null());
@@ -44,6 +45,7 @@ namespace libcloudphxx
       if (!rhod_courant_y.is_null()) pimpl->sync(rhod_courant_y, pimpl->rhod_courant_y);
       if (!rhod_courant_z.is_null()) pimpl->sync(rhod_courant_z, pimpl->rhod_courant_z);
 
+      std::cerr << "AQQ przed part pos" << std::endl;
       // initialising particle positions
       pimpl->init_xyz();
 
@@ -52,8 +54,10 @@ namespace libcloudphxx
 
       // initialising housekeeping data (incl. ijk)
       pimpl->init_hskpng(); 
-      pimpl->hskpng_Tpr(); 
+      pimpl->hskpng_Tpr();
+      std::cerr << "AQQ przed hsk" << std::endl;		 
       pimpl->hskpng_ijk(); 
+      std::cerr << "AQQ po hsk" << std::endl;
 
       // initialising dry radii (needs positions, ijk and rhod)
       assert(pimpl->opts_init.dry_distros.size() == 1); // TODO: handle multiple spectra/kappas
