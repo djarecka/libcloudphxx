@@ -30,7 +30,7 @@ namespace libcloudphxx
 
     template <typename real_t, backend_t device>
     void particles_t<real_t, device>::impl::hskpng_ijk()
-    {   
+    { /*   
       // helper functor
       struct {
         void operator()(
@@ -90,7 +90,7 @@ namespace libcloudphxx
       
       // flagging that particles are no longer sorted 
       sorted = false;
-      std::cerr << "AQQ po sorted" << std::endl;
+      std::cerr << "AQQ po sorted" << std::endl; */
     }   
   };  
 };
