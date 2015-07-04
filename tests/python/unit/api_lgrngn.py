@@ -3,7 +3,7 @@ sys.path.insert(0, "../../bindings/python/")
 
 from libcloudphxx import lgrngn
 
-from numpy import array as arr_t, frombuffer
+from numpy import array as arr_t, frombuffer, repeat, zeros, float64
 
 from math import exp, log, sqrt, pi
 
@@ -18,6 +18,10 @@ def lognormal(lnr):
 opts_init = lgrngn.opts_init_t()
 kappa = .61
 opts_init.dry_distros = {kappa:lognormal}
+opts_init.kernel = lgrngn.kernel_t.geometric
+opts_init.dt = 1
+opts_init.sd_conc_mean = 64
+opts_init.rng_seed = 396
 
 print "nx =", opts_init.nx
 print "ny =", opts_init.ny
@@ -35,13 +39,13 @@ print "x1 =", opts_init.x1
 print "y1 =", opts_init.y1
 print "z1 =", opts_init.z1
 
+print "chem_switch = ", opts_init.chem_switch
 print "dt =", opts_init.dt
 print "sstp_cond =", opts_init.sstp_cond
 print "sstp_coal =", opts_init.sstp_coal
 print "sstp_chem =", opts_init.sstp_chem 
 
 print "kernel =", opts_init.kernel 
-assert opts_init.kernel == lgrngn.kernel_t.geometric
 print "sd_conc_mean =", opts_init.sd_conc_mean
 print "chem_rho =", opts_init.chem_rho
 
@@ -62,7 +66,6 @@ opts.chem_gas = {
   lgrngn.chem_species_t.O3   : 44,
   lgrngn.chem_species_t.H2O2 : 44
 }
-
 print "chem_gas[SO2] = ", opts.chem_gas[lgrngn.chem_species_t.SO2]
 print "chem_gas = ", opts.chem_gas
 
@@ -80,7 +83,7 @@ prtcls.diag_wet_rng(0.,1.)
 prtcls.diag_dry_mom(1)
 prtcls.diag_wet_mom(1)
 prtcls.diag_all()
-prtcls.diag_chem(lgrngn.chem_species_t.OH)
+#prtcls.diag_chem(lgrngn.chem_species_t.OH)
 prtcls.diag_sd_conc()
 assert frombuffer(prtcls.outbuf()) == opts_init.sd_conc_mean # parcel set-up
 
@@ -114,11 +117,51 @@ opts_init.x1 = opts_init.nx * opts_init.dx
 
 prtcls = lgrngn.factory(backend, opts_init)
 assert opts_init.nx == prtcls.opts_init.nx
-prtcls.init(th, rv, rhod)
+prtcls.init(th, rv, rhod) #TODO: test passing rhoCx, rhoCy, rhoCz here 
 prtcls.diag_sd_conc()
 assert len(frombuffer(prtcls.outbuf())) == opts_init.nz * opts_init.nx
 assert (frombuffer(prtcls.outbuf()) > 0).all()
 assert sum(frombuffer(prtcls.outbuf())) == opts_init.nz * opts_init.nx * opts_init.sd_conc_mean
 
+# 3arg variant (const rho)
+prtcls.step_sync(opts, th, rv) #TODO: this should fail as no Courants were passed in init!
+rain = prtcls.step_async(opts)
+
+# 4arg variant (var rho - the one used in 0D)
+prtcls.step_sync(opts, th, rv, rhod) #TODO: this should fail as no Courants were passed in init!
+rain = prtcls.step_async(opts)
+
+#TODO: test profile vs. 2D array
+
 # 3D
-# TODO...
+rhod = arr_t([rhod, rhod])
+th   = arr_t([th,   th  ])
+rv   = arr_t([rv,   rv  ])
+
+opts_init.ny = 2
+opts_init.dy = 10
+opts_init.y1 = opts_init.ny * opts_init.dy
+
+prtcls = lgrngn.factory(backend, opts_init)
+prtcls.init(th, rv, rhod) #TODO: test passing rhoCx, rhoCy, rhoCz here
+prtcls.diag_sd_conc()
+assert len(frombuffer(prtcls.outbuf())) == opts_init.nz * opts_init.nx * opts_init.ny
+assert (frombuffer(prtcls.outbuf()) > 0).all()
+assert sum(frombuffer(prtcls.outbuf())) == opts_init.nz * opts_init.nx * opts_init.ny * opts_init.sd_conc_mean
+
+# 3 arg variant
+prtcls.step_sync(opts, th, rv) #TODO: should fail with no Courant in init
+rain = prtcls.step_async(opts)
+
+# 4 arg variant
+prtcls.step_sync(opts, th, rv, rhod) #TODO: should fail with no Courants in init
+rain = prtcls.step_async(opts)
+
+# 6 arg variant
+rhoCx = zeros((opts_init.nx+1, opts_init.ny+0, opts_init.nz+0), dtype=float64) #TODO: these dimensions are not checked...
+rhoCy = zeros((opts_init.nx+0, opts_init.ny+1, opts_init.nz+0), dtype=float64)
+rhoCz = zeros((opts_init.nx+0, opts_init.ny+0, opts_init.nz+1), dtype=float64)
+prtcls.step_sync(opts, th, rv, rhoCx, rhoCy, rhoCz)
+rain = prtcls.step_async(opts)
+
+#TODO: test profile vs. 3D array

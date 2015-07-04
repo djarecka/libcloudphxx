@@ -20,9 +20,9 @@ namespace libcloudphxx
         const arrinfo_t<real_t> th,
         const arrinfo_t<real_t> rv,
         const arrinfo_t<real_t> rhod, 
-        const arrinfo_t<real_t> rhod_courant_x,
-        const arrinfo_t<real_t> rhod_courant_y,
-        const arrinfo_t<real_t> rhod_courant_z
+        const arrinfo_t<real_t> courant_x,
+        const arrinfo_t<real_t> courant_y,
+        const arrinfo_t<real_t> courant_z
       ) { 
         assert(false); 
       }  
@@ -32,10 +32,10 @@ namespace libcloudphxx
         const arrinfo_t<real_t> th,
         const arrinfo_t<real_t> rv,
         const arrinfo_t<real_t> rhod,
-        const arrinfo_t<real_t> rhod_courant_x,
-        const arrinfo_t<real_t> rhod_courant_z
+        const arrinfo_t<real_t> courant_x,
+        const arrinfo_t<real_t> courant_z
       ) { 
-        this->init(th, rv, rhod, rhod_courant_x, arrinfo_t<real_t>(), rhod_courant_z); 
+        this->init(th, rv, rhod, courant_x, arrinfo_t<real_t>(), courant_z); 
       }  
  
       // 1D version
@@ -43,9 +43,9 @@ namespace libcloudphxx
         const arrinfo_t<real_t> th,
         const arrinfo_t<real_t> rv,
         const arrinfo_t<real_t> rhod,
-        const arrinfo_t<real_t> rhod_courant_z
+        const arrinfo_t<real_t> courant_z
       ) { 
-        this->init(th, rv, rhod, arrinfo_t<real_t>(), arrinfo_t<real_t>(), rhod_courant_z); 
+        this->init(th, rv, rhod, arrinfo_t<real_t>(), arrinfo_t<real_t>(), courant_z); 
       }  
 
       // 0D version
@@ -62,9 +62,9 @@ namespace libcloudphxx
         const opts_t<real_t> &,
         arrinfo_t<real_t> th,
         arrinfo_t<real_t> rv,
-        const arrinfo_t<real_t> rhod_courant_x,
-        const arrinfo_t<real_t> rhod_courant_y,
-        const arrinfo_t<real_t> rhod_courant_z,
+        const arrinfo_t<real_t> courant_x,
+        const arrinfo_t<real_t> courant_y,
+        const arrinfo_t<real_t> courant_z,
         const arrinfo_t<real_t> rhod
       ) { 
         assert(false); 
@@ -83,11 +83,11 @@ namespace libcloudphxx
         const opts_t<real_t> &opts,
         arrinfo_t<real_t> th,
         arrinfo_t<real_t> rv,
-        const arrinfo_t<real_t> rhod_courant_x,
-        const arrinfo_t<real_t> rhod_courant_y,
-        const arrinfo_t<real_t> rhod_courant_z
+        const arrinfo_t<real_t> courant_x,
+        const arrinfo_t<real_t> courant_y,
+        const arrinfo_t<real_t> courant_z
       ) { 
-        this->step_sync(opts, th, rv, rhod_courant_x, rhod_courant_y, rhod_courant_z, arrinfo_t<real_t>()); 
+        this->step_sync(opts, th, rv, courant_x, courant_y, courant_z, arrinfo_t<real_t>()); 
       }  
 
       // kinematic version
@@ -113,16 +113,16 @@ namespace libcloudphxx
         const opts_t<real_t> &opts,
         arrinfo_t<real_t> th,
         arrinfo_t<real_t> rv,
-        const arrinfo_t<real_t> rhod_courant_x,
-        const arrinfo_t<real_t> rhod_courant_z
+        const arrinfo_t<real_t> courant_x,
+        const arrinfo_t<real_t> courant_z
       ) { 
         this->step_sync(
           opts,
           th, 
           rv, 
-          rhod_courant_x, 
+          courant_x, 
           arrinfo_t<real_t>(), 
-          rhod_courant_z, 
+          courant_z, 
           arrinfo_t<real_t>()
         ); 
       }  
@@ -146,16 +146,17 @@ namespace libcloudphxx
       }  
 
       // method for accessing super-droplet statistics
-      virtual void diag_sd_conc()                             { assert(false); }
-      virtual void diag_all()                                 { assert(false); }
-      virtual void diag_rw_ge_rc()                            { assert(false); }
-      virtual void diag_RH_ge_Sc()                            { assert(false); }
-      virtual void diag_dry_rng(const real_t&, const real_t&) { assert(false); }
-      virtual void diag_wet_rng(const real_t&, const real_t&) { assert(false); }
-      virtual void diag_dry_mom(const int&)                   { assert(false); }
-      virtual void diag_wet_mom(const int&)                   { assert(false); }
-      virtual void diag_chem(const enum chem_species_t&)      { assert(false); }
-      virtual real_t *outbuf()                                { assert(false); return NULL; }
+      virtual void diag_sd_conc()                                   { assert(false); }
+      virtual void diag_all()                                       { assert(false); }
+      virtual void diag_rw_ge_rc()                                  { assert(false); }
+      virtual void diag_RH_ge_Sc()                                  { assert(false); }
+      virtual void diag_dry_rng(const real_t&, const real_t&)       { assert(false); }
+      virtual void diag_wet_rng(const real_t&, const real_t&)       { assert(false); }
+      virtual void diag_dry_mom(const int&)                         { assert(false); }
+      virtual void diag_wet_mom(const int&)                         { assert(false); }
+      virtual void diag_wet_mass_dens(const real_t&, const real_t&) { assert(false); }
+      virtual void diag_chem(const enum chem_species_t&)            { assert(false); }
+      virtual real_t *outbuf()                                      { assert(false); return NULL; }
 
       // storing a pointer to opts_init (e.g. for interrogatin about
       // dimensions in Python bindings)
@@ -172,9 +173,9 @@ namespace libcloudphxx
         const arrinfo_t<real_t> th,
         const arrinfo_t<real_t> rv,
         const arrinfo_t<real_t> rhod,
-        const arrinfo_t<real_t> rhod_courant_1,
-        const arrinfo_t<real_t> rhod_courant_2, 
-        const arrinfo_t<real_t> rhod_courant_3
+        const arrinfo_t<real_t> courant_1,
+        const arrinfo_t<real_t> courant_2, 
+        const arrinfo_t<real_t> courant_3
       );
 
       // time-stepping methods
@@ -182,9 +183,9 @@ namespace libcloudphxx
         const opts_t<real_t> &,
         arrinfo_t<real_t> th,
         arrinfo_t<real_t> rv,
-        const arrinfo_t<real_t> rhod_courant_1,
-        const arrinfo_t<real_t> rhod_courant_2,
-        const arrinfo_t<real_t> rhod_courant_3,
+        const arrinfo_t<real_t> courant_1,
+        const arrinfo_t<real_t> courant_2,
+        const arrinfo_t<real_t> courant_3,
         const arrinfo_t<real_t> rhod 
       );
       real_t step_async(
@@ -201,6 +202,7 @@ namespace libcloudphxx
       );
       void diag_dry_mom(const int &k);
       void diag_wet_mom(const int &k);
+      void diag_wet_mass_dens(const real_t&, const real_t&);
       real_t *outbuf();
 
       // ...

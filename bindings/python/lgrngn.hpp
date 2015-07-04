@@ -74,29 +74,46 @@ namespace libcloudphxx
 	const bp::numeric::array &th,
 	const bp::numeric::array &rv,
 	const bp::numeric::array &rhod,
-        const bp::numeric::array &rhod_Cx,
-        const bp::numeric::array &rhod_Cz
+        const bp::numeric::array &Cx,
+        const bp::numeric::array &Cz
       )
       {
 	arg->init(
 	  np2ai<real_t>(th,      sz(*arg)),
 	  np2ai<real_t>(rv,      sz(*arg)),
 	  np2ai<real_t>(rhod,    sz(*arg)),
-          np2ai<real_t>(rhod_Cx, sz(*arg)),
-          np2ai<real_t>(rhod_Cz, sz(*arg))
+          np2ai<real_t>(Cx,      sz(*arg)),
+          np2ai<real_t>(Cz,      sz(*arg))
 	);
       }
 
       // TODO: 1D & 3D kinematic versions
 
       template <typename real_t>
-      void step_sync(
+      void step_sync_3arg(
+	lgr::particles_proto_t<real_t> *arg,
+	const lgr::opts_t<real_t> &opts,
+	const bp::numeric::array &th,
+	const bp::numeric::array &rv
+      )
+      {
+	lgr::arrinfo_t<real_t>
+	  np2ai_th(np2ai<real_t>(th, sz(*arg))),
+	  np2ai_rv(np2ai<real_t>(rv, sz(*arg)));
+	arg->step_sync(
+	  opts, 
+	  np2ai_th,
+	  np2ai_rv
+	);
+      }
+
+      template <typename real_t>
+      void step_sync_4arg(
 	lgr::particles_proto_t<real_t> *arg,
 	const lgr::opts_t<real_t> &opts,
 	const bp::numeric::array &th,
 	const bp::numeric::array &rv,
 	const bp::numeric::array &rhod
-        // TODO: courant fields
       )
       {
 	lgr::arrinfo_t<real_t>
@@ -109,6 +126,33 @@ namespace libcloudphxx
 	  np2ai<real_t>(rhod, sz(*arg))
 	);
       }
+
+      // 3D dynamic variant
+      template <typename real_t>
+      void step_sync_6arg(
+	lgr::particles_proto_t<real_t> *arg,
+	const lgr::opts_t<real_t> &opts,
+	const bp::numeric::array &th,
+	const bp::numeric::array &rv,
+	const bp::numeric::array &rhod_courant_x,
+	const bp::numeric::array &rhod_courant_y,
+	const bp::numeric::array &rhod_courant_z
+      )
+      {
+	lgr::arrinfo_t<real_t>
+	  np2ai_th(np2ai<real_t>(th, sz(*arg))),
+	  np2ai_rv(np2ai<real_t>(rv, sz(*arg)));
+	arg->step_sync(
+	  opts, 
+	  np2ai_th,
+	  np2ai_rv,
+	  np2ai<real_t>(rhod_courant_x, sz(*arg)),
+	  np2ai<real_t>(rhod_courant_y, sz(*arg)),
+	  np2ai<real_t>(rhod_courant_z, sz(*arg))
+	);
+      }
+
+      // TODO: 2D dynamic variant
 
       template <typename real_t>
       const lgr::opts_init_t<real_t> get_oi(
@@ -156,6 +200,25 @@ namespace libcloudphxx
       )
       {
 	throw std::runtime_error("dry_distros does not feature a getter yet - TODO");
+      }
+
+      template <typename real_t>
+      void set_kp(
+	lgr::opts_init_t<real_t> *arg,
+	const bp::numeric::array &vec
+      )
+      {
+        sanity_checks(vec);
+	for (int i = 0; i < len(vec); ++i)
+	  arg->kernel_parameters.push_back(bp::extract<real_t>(vec[i]));
+      }
+
+      template <typename real_t>
+      bp::numeric::array get_kp(
+	lgr::opts_init_t<real_t> *arg
+      )
+      {
+	throw std::runtime_error("kernel_paramteres does not feature a getter yet - TODO");
       }
 
       template <typename real_t>
