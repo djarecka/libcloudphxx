@@ -130,7 +130,9 @@ BOOST_PYTHON_MODULE(libcloudphxx)
       .value("CUDA",   lgr::CUDA);
     bp::enum_<lgr::kernel_t::kernel_t>("kernel_t") 
       .value("geometric", lgr::kernel_t::geometric)
-      .value("golovin", lgr::kernel_t::golovin);
+      .value("golovin", lgr::kernel_t::golovin)
+      .value("hall", lgr::kernel_t::hall)
+      .value("hall_davis_no_waals", lgr::kernel_t::hall_davis_no_waals);
     bp::enum_<lgr::vt_t::vt_t>("vt_t") 
       .value("beard", lgr::vt_t::beard)
       .value("khvorostyanov_spherical", lgr::vt_t::khvorostyanov_spherical)
@@ -191,6 +193,7 @@ BOOST_PYTHON_MODULE(libcloudphxx)
     bp::class_<lgr::particles_proto_t<real_t>/*, boost::noncopyable*/>("particles_proto_t")
       .add_property("opts_init", &lgrngn::get_oi<real_t>)
       .def("init",         &lgrngn::init_3arg<real_t>)
+      .def("init",         &lgrngn::init_4arg<real_t>)
       .def("init",         &lgrngn::init_5arg<real_t>)
       .def("step_sync",    &lgrngn::step_sync_3arg<real_t>)
       .def("step_sync",    &lgrngn::step_sync_4arg<real_t>)
