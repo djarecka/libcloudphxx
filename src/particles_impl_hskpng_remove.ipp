@@ -46,7 +46,36 @@ namespace libcloudphxx
       tup_params_t tup_params = thrust::make_tuple(n.begin(), rw2.begin(), rd3.begin(), kpa.begin(), vt.begin(), ijk.begin());
 
       if(opts_init.chem_switch)
-        throw std::runtime_error("SDs were to be removed, but it is not yet compatible with chemistry");
+      {
+        namespace arg = thrust::placeholders;
+        thrust::remove_if(
+          V_old.begin(),
+          V_old.end(),
+          n.begin(),
+          arg::_1 == 0
+        );
+
+        // TODO: remove all chem in one remove_if call
+        for (int i = chem_all-1; i >= 0; --i)
+        {
+          typename thrust_device::vector<real_t>::iterator new_last = thrust::remove_if(
+            chem_bgn[i],
+            chem_end[i],
+            n.begin(),
+            arg::_1 == 0
+          );
+          
+          thrust_device::vector<real_t> &vec(
+            i < chem_rhs_beg 
+              ? chem_ante_rhs
+              : i < chem_rhs_fin
+                ? chem_rhs
+                : chem_post_rhs
+          );
+ 
+          vec.erase(new_last, chem_end[i]);
+        }
+      }
 
       if(n_dims == 3)
       {
@@ -147,24 +176,13 @@ namespace libcloudphxx
         );
         n_part = new_end - zip_param_pos;
       }
- 
+
       // resize vectors
-      {
-        thrust_device::vector<real_t> *vec[] = {&rw2, &rd3, &kpa, &x, &y, &z, &vt, &tmp_device_real_part, &u01};
-        for(int i=0; i<9; ++i)
-        {
-          vec[i]->erase(vec[i]->begin() + n_part, vec[i]->end());
-        }
-      }
-      {
-        thrust_device::vector<thrust_size_t> *vec[] = {&i, &j, &k, &ijk, &sorted_id, &sorted_ijk};
-        for(int i=0; i<6; ++i)
-        {
-          vec[i]->erase(vec[i]->begin() + n_part, vec[i]->end());
-        }
-      }
-      n.erase(n.begin() + n_part, n.end());
-      un.erase(un.begin() + n_part, un.end());
+      hskpng_resize_npart();
+
+      // resize chem vectors and update chem iterators
+      if(opts_init.chem_switch)
+        init_chem();
     }
   };  
 };

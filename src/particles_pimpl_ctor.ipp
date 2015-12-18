@@ -39,8 +39,10 @@ namespace libcloudphxx
       const opts_init_t<real_t> opts_init; // a copy
       const int n_dims;
       const int n_cell; 
+      thrust_size_t n_part,            // total number of SDs
+                    n_part_old,        // total number of SDs before source
+                    n_part_to_init;    // number of SDs to be initialized by source
       detail::rng<real_t, device> rng;
-      thrust_size_t n_part; 
 
       // pointer to collision kernel
       kernel_base<real_t, n_t> *p_kernel;
@@ -70,6 +72,11 @@ namespace libcloudphxx
 	y,   // y spatial coordinate (for 3D)
 	z;   // z spatial coordinate (for 2D and 3D)
 
+      // dry radii distribution characteristics
+      real_t log_rd_min, // logarithm of the lower bound of the distr
+             log_rd_max, // logarithm of the upper bound of the distr
+             multiplier; // multiplier calculated for the above values
+
       // terminal velocity (per particle)
       thrust_device::vector<real_t> vt; 
 
@@ -94,7 +101,7 @@ namespace libcloudphxx
         count_mom; // statistical moment // TODO (perhaps tmp_device_real_cell could be referenced?)
       thrust_size_t count_n;
 
-      // Eulerian-Lagrangian interface vers
+      // Eulerian-Lagrangian interface vars
       thrust_device::vector<real_t> 
         rhod,    // dry air density
         th,      // potential temperature (dry)
@@ -105,6 +112,8 @@ namespace libcloudphxx
         courant_x, 
         courant_y, 
         courant_z;
+
+      std::map<enum chem_species_t, thrust_device::vector<real_t> > ambient_chem;
   
       thrust_device::vector<real_t> 
         T,  // temperature [K]
@@ -114,6 +123,9 @@ namespace libcloudphxx
 
       // sorting needed only for diagnostics and coalescence
       bool sorted;
+
+      // timestep counter
+      n_t stp_ctr;
 
       // maps linear Lagrangian component indices into Eulerian component linear indices
       // the map key is the address of the Thrust vector
@@ -126,7 +138,7 @@ namespace libcloudphxx
       // TODO: consider changing the unit to AMU or alike (very small numbers!)
       std::vector<typename thrust_device::vector<real_t>::iterator >
         chem_bgn, chem_end; // indexed with enum chem_species_t
-      thrust_device::vector<real_t> chem_noneq, chem_equil;
+      thrust_device::vector<real_t> chem_rhs, chem_ante_rhs, chem_post_rhs;
       /* TODO:
         On May 9, 2012, at 7:44 PM, Karsten Ahnert wrote:
         > ... unfortunately the Rosenbrock method cannot be used with any other state type than ublas.matrix.
@@ -144,6 +156,9 @@ namespace libcloudphxx
         boost::numeric::odeint::never_resizer
       > chem_stepper;
 
+      // vector to store volume of SDs, needed by chem Henry
+      thrust_device::vector<real_t>  V_old;
+
       // temporary data
       thrust::host_vector<real_t>
         tmp_host_real_grid,
@@ -152,7 +167,13 @@ namespace libcloudphxx
         tmp_host_size_cell;
       thrust_device::vector<real_t>
         tmp_device_real_part,
+        tmp_device_real_part_chem,  // only allocated if chem_switch==1
+        tmp_device_real_part_HNO3,  //TODO - can we do it without those four?
+        tmp_device_real_part_NH3,
+        tmp_device_real_part_SO2,
+        tmp_device_real_part_CO2,
         tmp_device_real_cell,
+        tmp_device_real_cell1,
 	&u01;  // uniform random numbers between 0 and 1 // TODO: use the tmp array as rand argument?
       thrust_device::vector<unsigned int>
         tmp_device_n_part,
@@ -188,18 +209,14 @@ namespace libcloudphxx
           m1(opts_init.ny) *
           m1(opts_init.nz)
         ),
-	n_part( // TODO: what if multiple spectra/kappas
-          opts_init.sd_conc_mean * 
-	  ((opts_init.x1 - opts_init.x0) / opts_init.dx) *
-	  ((opts_init.y1 - opts_init.y0) / opts_init.dy) *
-	  ((opts_init.z1 - opts_init.z0) / opts_init.dz)
-        ),
         zero(0), 
+        n_part(0),
         sorted(false), 
         u01(tmp_device_real_part),
         n_user_params(opts_init.kernel_parameters.size()),
         un(tmp_device_n_part),
-        rng(opts_init.rng_seed)
+        rng(opts_init.rng_seed),
+        stp_ctr(0)
       {
         // sanity checks
         if (n_dims > 0)
@@ -219,7 +236,7 @@ namespace libcloudphxx
         }
 
         if (opts_init.dt == 0) throw std::runtime_error("please specify opts_init.dt");
-        if (opts_init.sd_conc_mean == 0) throw std::runtime_error("please specify opts_init.sd_conc");
+        if (opts_init.sd_conc == 0) throw std::runtime_error("please specify opts_init.sd_conc");
         if (opts_init.coal_switch)
         {
           if(opts_init.terminal_velocity == vt_t::undefined) throw std::runtime_error("please specify opts_init.terminal_velocity or turn off opts_init.coal_switch");
@@ -231,10 +248,9 @@ namespace libcloudphxx
         // note: there could be less tmp data spaces if _cell vectors
         //       would point to _part vector data... but using.end() would not possible
         // initialising device temporary arrays
-	tmp_device_real_part.resize(n_part);
         tmp_device_real_cell.resize(n_cell);
+        tmp_device_real_cell1.resize(n_cell);
         tmp_device_size_cell.resize(n_cell);
-	tmp_device_n_part.resize(n_part);
 
         // initialising host temporary arrays
         {
@@ -272,17 +288,27 @@ namespace libcloudphxx
       // methods
       void sanity_checks();
 
-      void init_dry(
+      void init_dry();
+      void init_n(
         const real_t kappa, // TODO: map
         const common::unary_function<real_t> *n_of_lnrd
       );
+      void dist_analysis(
+        const common::unary_function<real_t> *n_of_lnrd,
+        const n_t sd_conc,
+        const real_t dt = 1.
+      );
+      void init_ijk();
       void init_xyz();
+      void init_count_num();
       void init_e2l(const arrinfo_t<real_t> &, thrust_device::vector<real_t>*, const int = 0, const int = 0, const int = 0);
       void init_wet();
       void init_sync();
       void init_grid();
-      void init_hskpng();
+      void init_hskpng_ncell();
+      void init_hskpng_npart();
       void init_chem();
+      void init_chem_aq();
       void init_sstp();
       void init_kernel();
 
@@ -299,6 +325,7 @@ namespace libcloudphxx
       void hskpng_vterm_all();
       void hskpng_vterm_invalid();
       void hskpng_remove_n0();
+      void hskpng_resize_npart();
 
       void moms_all();
    
@@ -314,6 +341,10 @@ namespace libcloudphxx
         const typename thrust_device::vector<real_t>::iterator &vec_bgn
       ); 
       void moms_calc(
+	const typename thrust_device::vector<real_t>::iterator &vec_bgn,
+        const real_t power
+      );
+      void moms_calc_cond(
 	const typename thrust_device::vector<real_t>::iterator &vec_bgn,
         const real_t power
       );
@@ -337,13 +368,21 @@ namespace libcloudphxx
 
       void cond_dm3_helper();
       void cond(const real_t &dt, const real_t &RH_max);
+      void update_th_rv(thrust_device::vector<real_t> &);
 
       void coal(const real_t &dt);
 
-      void chem(const real_t &dt, const std::vector<real_t> &chem_gas, 
-                const bool &chem_dsl, const bool &chem_dsc, const bool &chem_rct);
+      void chem_vol_ante();
+      void chem_flag_ante();
+      void chem_henry(const real_t &dt, const bool &chem_sys_cls);
+      void chem_dissoc();
+      void chem_react(const real_t &dt);
+      void chem_vol_post();
+ 
       thrust_size_t rcyc();
       real_t bcnd(); // returns accumulated rainfall
+
+      void src(const real_t &dt);
 
       void sstp_step(const int &step, const bool &var_rho);
       void sstp_save();
